@@ -12,7 +12,7 @@
 module mem_bram
 #(parameter WIDTH = 11,//top module me ise 12 kar diya hai
     parameter DEPTH = 640*480)
-    (   input wire                      i_wclk,//this is the input i think directly from the vga
+    (   input wire                      i_wclk,
         input wire                      i_wr,//hamesha 1 hai
         input wire [$clog2(DEPTH)-1:0]  i_wr_addr,//this is also decided by the camera capture itself where to send in the b ram
         
@@ -22,16 +22,16 @@ module mem_bram
         
         input wire                      i_bram_en,//this is always 1
         input wire [WIDTH-1:0]          i_bram_data,//ye camera capture se aa rha hai
-        output reg [WIDTH-1:0]          o_bram_data  //ye sidha vga top ko milega taki shayad vo display kar sake   
+        output reg [WIDTH-1:0]          o_bram_data  //ye sidha vga top ko milega taki vo display kar sake   
     );
     
     // Infer dual-port BRAM with dual clocks
-    // https://docs.xilinx.com/v/u/2019.2-English/ug901-vivado-synthesis (page 126)
+    
     reg [WIDTH-1:0] ram [0:DEPTH-1]; 
     
     always @(posedge i_wclk)
-    if(i_bram_en)//hamesha run karega ye to
-        if(i_wr)//ye bhi hamesha run karega
+    if(i_bram_en)
+        if(i_wr)
             ram[i_wr_addr] <= i_bram_data;
     
     always @(posedge i_rclk)
