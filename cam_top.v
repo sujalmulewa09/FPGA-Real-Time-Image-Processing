@@ -11,12 +11,12 @@
 
 module cam_top
 #(parameter CAM_CONFIG_CLK = 100_000_000)
-     (  input wire          i_clk,  //fast internal clk for configuration c means camera
-        input wire          i_rstn_clk,//n represent reset when low p means pixel
+     (  input wire          i_clk,  //fast internal clk for configuration 
+        input wire          i_rstn_clk,//n represent reset when low
         input wire          i_rstn_pclk, //the current frame being written to memory is cleared or restarted
        
         // Start/Done signals for cam init      
-        input wire          i_cam_start,//t tells the FPGA: "Okay, start sending all those complex configuration commands (brightness, resolution, etc.) to the camera now.
+        input wire          i_cam_start,//t tells the FPGA: "Okay, start sending all those complex configuration commands to the camera now
         output wire         o_cam_done,//This is the signal that tells the rest of the system that the camera is ready to use.
         
         // I/O camera
@@ -29,7 +29,7 @@ module cam_top
         output wire         o_siod,//to control brightness, contrast, and RGB format Serial Information clk
         output wire         o_sioc,//to control brightness, contrast, and RGB format Serial Information Output Data
         
-        // Outputs to BRAM
+        // Outputs to BRA
         output wire         o_pix_wr, //sent to the B RAM, wr means write enable
         output wire [11:0]  o_pix_data,//sent to the B RAM 
         output wire [18:0]  o_pix_addr// sent to the B RAM This tells the BRAM exactly where in its "filing cabinet" to store the current pixel.
@@ -41,9 +41,9 @@ module cam_top
     wire       w_start_db;// wire db means debounced means not the nosiy one
         
     debouncer // module name
-    #(  .DELAY(240_000)         )  //the # symbol used right after a module name indicates that you are about to "pass in" some constant values to configure that module  
-    cam_btn_start_db  // the specific name for this copy of the debouncer like instating in this btn means debounced
-    (   .i_clk(i_clk            ), //system clk
+    #(  .DELAY(240_000)         )
+    cam_btn_start_db  
+    (   .i_clk(i_clk            ), 
         .i_btn_in(i_cam_start   ), //input comming from the fpga that is dirty signal 
         
         // Debounced button to start cam init 
