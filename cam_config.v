@@ -27,10 +27,10 @@ module cam_config
     );
     
     localparam ten_ms_delay  = (CLK_F * 10) / 1000;//but delay is only for the 1st step other steps it wont pause for 10 ms delay
-    localparam timer_size    =  $clog2(ten_ms_delay);//c represent the ceiling and dollar is representing this math is done by the system itself
+    localparam timer_size    =  $clog2(ten_ms_delay);
     reg [timer_size - 1: 0] timer;
     
-    localparam SM_IDLE  = 0;//sm means state machine IDLE  means simply inactive means not in use
+    localparam SM_IDLE  = 0;//IDLE  means simply inactive means not in use
     localparam SM_SEND  = 1;
     localparam SM_DONE  = 2;
     localparam SM_TIMER = 3;
