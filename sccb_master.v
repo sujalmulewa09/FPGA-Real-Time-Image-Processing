@@ -1,15 +1,9 @@
 `timescale 1ns / 1ps
 `default_nettype none
 
-/*
- *  Creates SCCB serial protocol in order to write data 
- *  to OV7670 registers for configuring pixel output 
- *  
- */
- 
 module sccb_master
-#(parameter CLK_F = 100_000_000,//speed at which fpga is producing the output
-    parameter SCCB_F = 400_000)//it physically represent the speed of the communication between the FPGA and the camera
+#(parameter CLK_F = 100_000_000,
+    parameter SCCB_F = 400_000)
     (   input wire          i_clk,
         input wire          i_rstn,
         
@@ -23,18 +17,16 @@ module sccb_master
         input wire   [7:0]  i_addr, 
         
         output wire  [7:0]  o_dout,
-        output wire         o_ready,      
-        output wire         o_done,       // 1-cycle tick when a transaction is completed 
-        output wire         o_ack,       
+        output wire          o_ready,      
+        output wire          o_done,        
+        output wire          o_ack,       
         
-        inout  wire         io_sda,      
-        output wire         o_scl
+        inout  wire          io_sda,      
+        output wire          o_scl
      );
      
-    // Camera Address for writing  
-    localparam CAM_ADDR = 7'h21;//this is the register adress so that camera will ready to do further process
+    localparam CAM_ADDR = 7'h21;
     
-    // FSM States
     localparam [3:0] IDLE      = 0,
                      START_1   = 1,
                      START_2   = 2,
@@ -48,7 +40,6 @@ module sccb_master
                      END_1     = 10,
                      END_2     = 11;
                      
-    // CLK_F/SCCB_F is number of clocks in ONE period of the SCCB clock (SCL)                   
     localparam TIMER_WIDTH = $clog2(CLK_F/SCCB_F);
     localparam HALF        = CLK_F/(2*SCCB_F);
     localparam QUARTER     = HALF/2;
@@ -56,21 +47,19 @@ module sccb_master
     reg [TIMER_WIDTH - 1: 0] timer;
     reg [3:0]                state;
     reg [8:0]                r_data_bit_index;
-    reg [8:0]                r_tx;//register transmit
-    reg [8:0]                r_rx;//register recieve
+    reg [8:0]                r_tx;
+    reg [8:0]                r_rx;
     reg [7:0]                r_latched_data, r_latched_addr;
     reg [1:0]                r_byte_index;
     reg                      data_state;
-    wire                     i_sda;//input serial data
+    wire                     i_sda;
     
     reg r_done;
     reg r_ready;
        
-    // Buffer SCL and SDA lines 
     reg r_scl, r2_scl;
-    reg r_sda, r2_en_sda; //en means enable                
+    reg r_sda, r2_en_sda; 
     
-    // Register read/write inputs
     reg r_read;
     reg r_write;
     
@@ -86,34 +75,31 @@ module sccb_master
             
     always @(posedge i_clk or negedge i_rstn)
         begin
-            if(!i_rstn) begin//agar i_rstn 0 hua to 
+            if(!i_rstn) begin
                 r2_scl    <= 1'b1;
                 r2_en_sda <= 1'b1;
             end
             else begin
-                r2_scl    <= r_scl;//Physically, r2_scl and r2_en_sda act as the final output stage (the "Exit Gate") for the signals leaving your FPGA.
+                r2_scl    <= r_scl;
                 r2_en_sda <= r_sda;
             end 
         end 
         
     always @(posedge i_clk)
         begin
-            r_read  <= i_read;//this is always 0
-            r_write <= i_write;//this is always 1
+            r_read  <= i_read;
+            r_write <= i_write;
         end
         
-    // 2-Wire SCCB bus lines
     assign i_sda  = (data_state && r_read) || (data_state && r_write && r_data_bit_index == 8);
     assign o_scl  = (r2_scl)             ? 1'bZ : 1'b0; 
     assign io_sda = (i_sda || r2_en_sda) ? 1'bZ : 1'b0;
     
-    
-    // State Machine 
     always @(posedge i_clk)
-        begin // 1'b1 It tells the FPGA to use exactly one wire or one flip-flop for this value.
-            timer <= timer + 1'b1;              // Free Running Counter
+        begin 
+            timer <= timer + 1'b1;              
             case(state)
-                IDLE: begin                     // SDA and SCL line high; Wait for start command
+                IDLE: begin                     
                     timer            <= 0;
                     r_ready          <= 1'b1;
                     r_done           <= 1'b0;
@@ -124,7 +110,7 @@ module sccb_master
                     r_sda            <= 1'b1;
                     r_latched_data   <= 8'hZZ;
                     r_latched_addr   <= 8'hZZ;
-                    if(i_start) begin//i_start is 1 only when 16'hFF_FF this reached in the cam_rom 
+                    if(i_start) begin
                             state      <= START_1;
                             timer      <= 0;
                             r_latched_data <= i_din; 
@@ -132,31 +118,31 @@ module sccb_master
                             r_ready    <= 1'b0; 
                         end
                     end
-                START_1: begin    // Bring SDA line low; Wait for 1/2 period of SCL
+                START_1: begin    
                     r_sda       <= 1'b0;
                     if(timer == (HALF-1)) begin
                         timer <= 0;  
                         state <= START_2;
                     end
                 end
-                START_2: begin    // Bring SCL line low; Wait for 1/2 period of SCL
+                START_2: begin    
                     r_scl   <= 1'b0; 
                     if(timer == (HALF-1)) begin
                         timer        <= 0;
                         state        <= WAIT; 
                     end
                 end
-                WAIT:   begin     // Both SCL/SDA low; Wait for Control Signal (Read or Write)
+                WAIT:   begin     
                     r_scl            <= 1'b0;
                     r_sda            <= 1'b0;
                     timer            <= 0;
-                    r_data_bit_index <= 0;//They work together to make sure the FPGA sends exactly the right amount of information in the right order.
+                    r_data_bit_index <= 0;
                     r_byte_index     <=  r_byte_index + 1'b1;
                     state            <= (r_byte_index == 3) ? END_1 : DATA_1;
-                    case(r_byte_index)                                  // 3-Phase Write Cycle (no ack in SCCB)
-                       2'b00: r_tx <= {CAM_ADDR, ~i_write, 1'b1};       //   byte1 = {SLAVE ADDRESS, WR BIT, Don't Care Bit}      
-                       2'b01: r_tx <= {r_latched_addr, 1'b1};           //   byte2 = {Register Addr,         Don't Care Bit} 
-                       2'b10: r_tx <= {r_latched_data, 1'b1};           //   byte3 = {Data to Register,      Don't Care Bit} 
+                    case(r_byte_index)                                   
+                       2'b00: r_tx <= {CAM_ADDR, ~i_write, 1'b1};       
+                       2'b01: r_tx <= {r_latched_addr, 1'b1};            
+                       2'b10: r_tx <= {r_latched_data, 1'b1};            
                        default: r_tx <= {r_latched_data, 1'b1}; 
                     endcase
                     
@@ -166,7 +152,7 @@ module sccb_master
                         else                            state <= IDLE; 
                     end
                 end 
-                DATA_1: begin   // Load Data Bit to SDA before sampled by SCL
+                DATA_1: begin   
                     r_sda       <= r_tx[8]; 
                     r_scl       <= 1'b0; 
                     data_state  <= 1'b1;
@@ -175,43 +161,42 @@ module sccb_master
                         state <= DATA_2; 
                     end
                 end
-                DATA_2: begin   // SCL Samples the Data Bit (Shift in for read/Shift out for write)
-                    r_sda <= r_tx[8];//Think of r_tx as a Queue of 9 People standing in a line, and r_sda as the Doorway.
-                    r_scl <= 1'b1; //It tells the camera exactly when to "sample" or "grab" the bit that is sitting on the data wire
-                    // Sample read bits in the middle of SCL being HIGH for sample reads
+                DATA_2: begin   
+                    r_sda <= r_tx[8];
+                    r_scl <= 1'b1; 
                     if(timer == (QUARTER-1)) begin      
                         timer <= 0; 
                         state <= DATA_3;
                         r_rx  <= {r_rx[7:0], io_sda};   
                     end
                 end 
-                DATA_3: begin   // Wait another quarter SCL cycle of it being HIGH
+                DATA_3: begin   
                     r_sda <= r_tx[8];
                     r_scl <= 1'b1; 
                     if(timer == (QUARTER-1)) begin
                         timer <= 0; 
-                        state <= DATA_4;  // Shift Data In
+                        state <= DATA_4;  
                     end
                 end
-                DATA_4: begin   // Bring SCL Low again; Wait another quarter of a cycle
+                DATA_4: begin   
                     r_sda       <= r_tx[8];
                     r_scl       <= 1'b0; 
                     if(timer == (QUARTER-1)) begin
                         timer <= 0;
                         if(r_data_bit_index == 8) begin
                             state      <= DATA_DONE;
-                            r_done     <= 1'b1;     // Set done signal HIGH
+                            r_done     <= 1'b1;     
                             data_state <= 1'b0;
                         end
                         else begin
                             r_tx             <=  {r_tx[7:0], 1'b0};
-                            r_data_bit_index <=  r_data_bit_index + 1'b1;//ye loop tab tak run karega jab tak 8 tak na ho jaye jaise hi 8 hoga than uppe wala run kar jayega
-                            state            <=  DATA_1;//isne state ko fir se data 1 kar diya
+                            r_data_bit_index <=  r_data_bit_index + 1'b1;
+                            state            <=  DATA_1;
                         end
                     end
                 end
                 DATA_DONE: begin
-                    r_done <= 1'b0;     // Set done signal LOW since it's a tick
+                    r_done <= 1'b0;     
                     r_sda  <= 1'b0;
                     r_scl  <= 1'b0;
                     if(timer == (QUARTER-1)) begin
@@ -226,8 +211,6 @@ module sccb_master
                     end
                 end
                 END_1: begin
-                    // SCL low, SDA low,        SCL high, SDA high
-                    // [ Done in WAIT state]
                     r_scl <= 1'b1;
                     r_sda <= 1'b0; 
                     if(timer == (HALF-1)) begin
@@ -246,13 +229,10 @@ module sccb_master
             endcase 
         end 
 
-    // Assign Output from SCCBA Reads ( don't read ACK bit )
     assign o_dout = r_rx[8:1]; 
-    // ACK (from slave in writes should be '0')
     assign o_ack = r_rx[0]; 
     
-    // Assign I2C Master Status Signals  
     assign o_ready = r_ready;  
     assign o_done  = r_done; 
        
-endmodule 
+endmodule
