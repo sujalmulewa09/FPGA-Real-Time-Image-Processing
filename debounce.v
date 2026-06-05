@@ -14,22 +14,22 @@
  */
 
 module debouncer 
-#(parameter DELAY = 1_000_000)//if there is no specification in the cam_top than this value is used otherwise the value that is written in the cam_top is used
+#(parameter DELAY = 1_000_000)
 (
     input wire  i_clk,
     input wire  i_btn_in,
     output wire o_btn_db         
 );
 
-    localparam MAX_COUNT = $clog2(DELAY);//c means ceiling and $means These are "super-powers" provided by the Verilog compiler to help you do math or debug your code. 
+    localparam MAX_COUNT = $clog2(DELAY);
     reg [MAX_COUNT-1:0] counter;
-    reg                 r_sample; // here r means register
+    reg                 r_sample; // 
     
     initial { counter, r_sample } = 0; 
     
     always @(posedge i_clk)
         begin
-            if(i_btn_in !== r_sample && counter < DELAY)//!= Only compares 0 and 1.but the used compares bit by bit
+            if(i_btn_in !== r_sample && counter < DELAY)
                 counter <= counter + 1'b1; 
             else if(counter == DELAY)
                 begin
