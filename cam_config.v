@@ -1,23 +1,12 @@
-`timescale 1ns / 1ps //Because you have 1ns, #5 means 5 nanoseconds.This defines the smallest possible step the simulator can take.
+`timescale 1ns / 1ps 
 `default_nettype none
 
-/*
- *  Begins sending cam rom to sccb_master after
- *  i_config_start button is asserted and sccb_master is ready (first state)
- *
- *  creates a delay using a timer, which is used after sending data to  
- *  reset sccb registers
- *  
- *  signal a cam initalization done signal for modules downstream
- *
- */
-
 module cam_config
-#(parameter CLK_F = 100_000_000)//this is the CAM_CONFIG_CLK
+#(parameter CLK_F = 100_000_000)
     (   input wire          i_clk,
-        input wire          i_rstn,//this is one which is used in the cam_rom so that whenever it is pushed than camera rom give output as 0
+        input wire          i_rstn,
         input wire          i_i2c_ready,
-        input wire          i_config_start,//input comming which is clean signal this is one which is debounced one
+        input wire          i_config_start,
         input wire [15:0]   i_rom_data, 
         output reg [7:0]    o_rom_addr,
         output reg          o_i2c_start, 
@@ -26,11 +15,11 @@ module cam_config
         output reg          o_config_done
     );
     
-    localparam ten_ms_delay  = (CLK_F * 10) / 1000;//but delay is only for the 1st step other steps it wont pause for 10 ms delay
+    localparam ten_ms_delay  = (CLK_F * 10) / 1000;
     localparam timer_size    =  $clog2(ten_ms_delay);
     reg [timer_size - 1: 0] timer;
     
-    localparam SM_IDLE  = 0;//IDLE  means simply inactive means not in use
+    localparam SM_IDLE  = 0;
     localparam SM_SEND  = 1;
     localparam SM_DONE  = 2;
     localparam SM_TIMER = 3;
@@ -41,7 +30,7 @@ module cam_config
     
     always @(posedge i_clk or negedge i_rstn)
         begin
-            if(!i_rstn) begin//agar rstn 0 ho gaya to ye hoga
+            if(!i_rstn) begin
                     o_config_done <= 0;
                     byte_index    <= 0; 
                     o_rom_addr    <= 0;
@@ -72,7 +61,7 @@ module cam_config
                                             SM_state        <= SM_TIMER;
                                             SM_return_state <= SM_SEND; 
                                             timer           <= 1;                             
-                                            o_i2c_start     <= 1;                                        
+                                            o_i2c_start     <= 1;                                         
                                             o_i2c_addr      <= i_rom_data[15:8]; 
                                             o_i2c_data      <= i_rom_data[7:0];
                                             o_rom_addr      <= o_rom_addr + 1; 
