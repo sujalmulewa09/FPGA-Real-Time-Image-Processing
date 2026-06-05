@@ -19,11 +19,11 @@
  */
 
 module cam_capture
-    (   input wire         i_pclk,//is coming from the camera into the FPGA.but how can camera generate the clk the anwer is first fpga send a clk to the camera and than camera slows or fast that partcular clk 
-        input wire         i_vsync,//input is comming from the camera It tells the FPGA exactly when one full frame of an image ends and the next one begins.
-        input wire         i_href, //same input is comming from the camera   
-        input wire  [7:0]  i_D,//i think this also direcly comming to the camera
-        input wire         i_cam_done,//this comes from the camera init i think this is telling that camera intilization is all done
+    (   input wire         i_pclk,
+        input wire         i_vsync,
+        input wire         i_href,  
+        input wire  [7:0]  i_D,
+        input wire         i_cam_done,
         output reg  [18:0] o_pix_addr, 
         output reg  [11:0] o_pix_data,      
         output reg         o_wr                   
@@ -55,31 +55,31 @@ module cam_capture
             o_wr                <= 0;
             o_pix_data          <= o_pix_data;  
             o_pix_addr          <= o_pix_addr;
-            SM_state            <= WAIT;    // hamesha hi yhi state rahegi but nhi kyunki bad wali sarvamanya hogi
+            SM_state            <= WAIT;
             case(SM_state)
                 WAIT: 
                     begin
                         // Skip the first two frames on start-up
-                        SM_state    <= (frame_start && i_cam_done) ? IDLE : WAIT;//agar camera ka initilization ho jaye and than frame start ho jaye to idle pe jana hai otherwise wait karte rho
+                        SM_state    <= (frame_start && i_cam_done) ? IDLE : WAIT;
                     end
                 IDLE:        
                     begin
-                        SM_state   <= (frame_start) ? CAPTURE : IDLE;//agar fromae start nhi hai to capture nhi karna hai
+                        SM_state   <= (frame_start) ? CAPTURE : IDLE;
                         o_pix_addr <= 0;
                         o_pix_data <= 0; 
                     end
                 CAPTURE:
                     begin
                         SM_state   <= (frame_done) ? IDLE : CAPTURE;//agar frame done hai to idle pe jao otherwise capture karte raho
-                        o_pix_addr <= (r_half_data) ? o_pix_addr + 1'b1 : o_pix_addr;  //initially to false hi hoga 
-                        if(i_href)//input camera se aayega
+                        o_pix_addr <= (r_half_data) ? o_pix_addr + 1'b1 : o_pix_addr;  
+                        if(i_href)
                             begin 
                                  // Register first byte
-                                 if(!r_half_data)   //initially zero hi hoga
+                                 if(!r_half_data)   
                                     pixel_data <= i_D[3:0];  //keval last ke 4 bit hi store kiye out of 8 bit    
-                                 r_half_data    <= ~r_half_data; //yha par r half data 1 ho jayega                      
-                                 o_wr           <= (r_half_data) ? 1'b1 : 1'b0;//1 if upper wala already 0 hai to
-                                 o_pix_data     <= (r_half_data) ? {pixel_data, i_D} : o_pix_data; //if r_half_data is 0 than o_pix_data is sended
+                                 r_half_data    <= ~r_half_data;                      
+                                 o_wr           <= (r_half_data) ? 1'b1 : 1'b0;
+                                 o_pix_data     <= (r_half_data) ? {pixel_data, i_D} : o_pix_data; 
                             end 
                     end  
             endcase
