@@ -28,7 +28,7 @@ module cam_init
         output wire [7:0]   o_SCCB_dout
     );
     
-    wire [7:0]  w_cam_rom_addr;//In your Verilog code, w_cam_rom_addr is the "Pointer" signal that tells the ROM which instruction it should send to the configuration module.
+    wire [7:0]  w_cam_rom_addr;
     wire [15:0] w_cam_rom_data;//In simple language, the ROM (Read-Only Memory) of the camera is like a "Pre-written Script" or a "Setup Checklist" that the FPGA reads to tell the camera exactly how to behave. 
     wire [7:0]  w_send_addr,    w_send_data;  
     wire        w_start_sccb,   w_ready_sccb; //serial camera control bus
