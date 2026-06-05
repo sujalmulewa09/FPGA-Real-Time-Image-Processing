@@ -20,7 +20,7 @@ module cam_rom
     );
     
     // Registers for OV7670 for configuration of RGB 444 
-    always @(posedge i_clk or negedge i_rstn) begin//i_rstin me isliye nhi use kiya kyunki agar bounce bhi kiya to koi dikkat nahi hai
+    always @(posedge i_clk or negedge i_rstn) begin
         if(!i_rstn) o_dout <= 0; 
         else begin 
             case(i_addr)
