@@ -13,7 +13,7 @@ module sccb_master
     (   input wire          i_clk,
         input wire          i_rstn,
         
-        input wire          i_read,       // I2C Commands. Assume read/write are mutually exclusive
+        input wire          i_read,       
         input wire          i_write,
         input wire          i_start,
         input wire          i_restart,
@@ -49,7 +49,7 @@ module sccb_master
                      END_2     = 11;
                      
     // CLK_F/SCCB_F is number of clocks in ONE period of the SCCB clock (SCL)                   
-    localparam TIMER_WIDTH = $clog2(CLK_F/SCCB_F);//dollar for the system that system will do the math and the c stands for the ceiling
+    localparam TIMER_WIDTH = $clog2(CLK_F/SCCB_F);
     localparam HALF        = CLK_F/(2*SCCB_F);
     localparam QUARTER     = HALF/2;
                       
@@ -96,7 +96,7 @@ module sccb_master
             end 
         end 
         
-    always @(posedge i_clk)//pura block kisi kam ka nhi hai current me kyunki sari value already fixed hai
+    always @(posedge i_clk)
         begin
             r_read  <= i_read;//this is always 0
             r_write <= i_write;//this is always 1
@@ -112,7 +112,7 @@ module sccb_master
     always @(posedge i_clk)
         begin // 1'b1 It tells the FPGA to use exactly one wire or one flip-flop for this value.
             timer <= timer + 1'b1;              // Free Running Counter
-            case(state)//first time me to state IDLE hi hoga
+            case(state)
                 IDLE: begin                     // SDA and SCL line high; Wait for start command
                     timer            <= 0;
                     r_ready          <= 1'b1;
@@ -127,29 +127,29 @@ module sccb_master
                     if(i_start) begin//i_start is 1 only when 16'hFF_FF this reached in the cam_rom 
                             state      <= START_1;
                             timer      <= 0;
-                            r_latched_data <= i_din; //i din data cam_rom se aa rha hai vahi jo cam_config me 8 8 me divide kiya gaya tha
-                            r_latched_addr <= i_addr; //ye bhi same upper se hi aa rha hai
+                            r_latched_data <= i_din; 
+                            r_latched_addr <= i_addr; 
                             r_ready    <= 1'b0; 
                         end
                     end
                 START_1: begin    // Bring SDA line low; Wait for 1/2 period of SCL
                     r_sda       <= 1'b0;
-                    if(timer == (HALF-1)) begin//repeat hota rahega jab tak timer == (HALF-1) nhi ho jata
-                        timer <= 0; // jaise hi timer HALF-1 hua timer 0 ho gaya 
+                    if(timer == (HALF-1)) begin
+                        timer <= 0;  
                         state <= START_2;
                     end
                 end
                 START_2: begin    // Bring SCL line low; Wait for 1/2 period of SCL
                     r_scl   <= 1'b0; 
-                    if(timer == (HALF-1)) begin//till timer == HALF-1 hone ka wait kar raha hai
-                        timer        <= 0;//jaise hi timer == HALF-1 hua than timer ko 0 par set kar diya . ye wala update sarvamanya hoga +1 wala jo pehle hai vo ignore kar diya jayega
+                    if(timer == (HALF-1)) begin
+                        timer        <= 0;
                         state        <= WAIT; 
                     end
                 end
                 WAIT:   begin     // Both SCL/SDA low; Wait for Control Signal (Read or Write)
-                    r_scl            <= 1'b0;//ye to start1 me kar hi diya tha
-                    r_sda            <= 1'b0;//ye bhi start 2 me kar diya tha
-                    timer            <= 0;// phir 1 se 0 kar diya
+                    r_scl            <= 1'b0;
+                    r_sda            <= 1'b0;
+                    timer            <= 0;
                     r_data_bit_index <= 0;//They work together to make sure the FPGA sends exactly the right amount of information in the right order.
                     r_byte_index     <=  r_byte_index + 1'b1;
                     state            <= (r_byte_index == 3) ? END_1 : DATA_1;
@@ -160,7 +160,7 @@ module sccb_master
                        default: r_tx <= {r_latched_data, 1'b1}; 
                     endcase
                     
-                    if((!i_write) && (!i_read)) begin//ye step kabhi true nhi hoga kyunki i_write hamesha hi 1 hai
+                    if((!i_write) && (!i_read)) begin
                         if(i_stop)                      state <= END_1; 
                         else if(i_restart || i_start)   state <= RESTART;
                         else                            state <= IDLE; 
@@ -169,10 +169,10 @@ module sccb_master
                 DATA_1: begin   // Load Data Bit to SDA before sampled by SCL
                     r_sda       <= r_tx[8]; 
                     r_scl       <= 1'b0; 
-                    data_state  <= 1'b1;//abtak ye zero tha jaise hi data state 1 bar run kiya tab se 1 ho gaya
-                    if(timer == (QUARTER-1)) begin//wait karega timer ke qaurter tak reach karne ka than work karega
+                    data_state  <= 1'b1;
+                    if(timer == (QUARTER-1)) begin
                         timer <= 0;
-                        state <= DATA_2; //jaise hi timer quater tak reach karega than state change karega and than data_2 me pahunch jayega
+                        state <= DATA_2; 
                     end
                 end
                 DATA_2: begin   // SCL Samples the Data Bit (Shift in for read/Shift out for write)
@@ -198,7 +198,7 @@ module sccb_master
                     r_scl       <= 1'b0; 
                     if(timer == (QUARTER-1)) begin
                         timer <= 0;
-                        if(r_data_bit_index == 8) begin//ye initially 0 hai
+                        if(r_data_bit_index == 8) begin
                             state      <= DATA_DONE;
                             r_done     <= 1'b1;     // Set done signal HIGH
                             data_state <= 1'b0;
