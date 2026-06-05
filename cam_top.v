@@ -12,11 +12,11 @@
 module cam_top
 #(parameter CAM_CONFIG_CLK = 100_000_000)
      (  input wire          i_clk,  //fast internal clk for configuration 
-        input wire          i_rstn_clk,//n represent reset when low
+        input wire          i_rstn_clk,
         input wire          i_rstn_pclk, //the current frame being written to memory is cleared or restarted
        
         // Start/Done signals for cam init      
-        input wire          i_cam_start,//t tells the FPGA: "Okay, start sending all those complex configuration commands to the camera now
+        input wire          i_cam_start,
         output wire         o_cam_done,//This is the signal that tells the rest of the system that the camera is ready to use.
         
         // I/O camera
